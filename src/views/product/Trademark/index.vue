@@ -30,7 +30,7 @@
               type="primary"
               icon="el-icon-edit"
               @click="handleClick(scope.row)">编辑</el-button>
-            <el-button type="danger" icon="el-icon-delete">删除</el-button>
+            <el-button type="danger" icon="el-icon-delete" @click="deleteTrademark(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -126,13 +126,10 @@ export default {
   },
 
   methods: {
-    async getData() {
+    async getData(page = 1) {
+      this.currentPage = page
       let { currentPage, pageSize } = this;
-      let result = await this.$api.trademark.reqTrademarkList(
-        currentPage,
-        pageSize
-      );
-      console.log(result);
+      let result = await this.$api.trademark.reqTrademarkList(currentPage, pageSize);
       if (result.code === 200) {
         this.tableData = result.data.records;
         this.total = result.data.total;
@@ -140,20 +137,41 @@ export default {
     },
     handleSizeChange(pageSize) {
       this.pageSize = pageSize;
-      this.currentPage = 1;
       this.getData();
     },
     handleCurrentChange(currentPage) {
-      this.currentPage = currentPage;
-      this.getData();
+      this.getData(currentPage);
     },
     showDialog() {
-        this.dialogVisible = true
+      // 清除之前的旧数据
+      this.trademarkForm = { tmName: "", logoUrl: "" }
+      this.dialogVisible = true
     },
     handleClick(row) {
         this.trademarkForm = { ...row }
-        this.isNew = false
         this.dialogVisible = true
+    },
+    deleteTrademark(row) {
+      this.$confirm(`确定删除${row.tmName}？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(async () => {
+        let result = await this.$api.trademark.reqDeleteTradeMark(row.id)
+        if(result.code === 200) {
+          this.$message({
+            type: 'success',
+            message: '删除成功!'
+          });
+
+          this.getData(this.tableData.length > 1 ?this.currentPage : this.currentPage-1)
+        }
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        });          
+      });
     },
     handleAvatarSuccess(res, file) {
       this.trademarkForm.logoUrl = res.data;
@@ -172,12 +190,11 @@ export default {
     },
     async addOrUpdateTrademark() {
         try {
-
             await this.trademarkForm.id ? this.$api.trademark.reqUpdateTrademark(this.trademarkForm) 
                 :this.$api.trademark.reqSaveTrademark(this.trademarkForm)
             this.dialogVisible = false
             this.$message.success(this.trademarkForm.id ?'修改品牌信息成功！' : '新增品牌信息成功！')
-            this.getData()
+            this.getData(this.trademarkForm.id ? this.currentPage : 1)
         } catch(error) {
             this.$message.error('新增品牌失败！')
         } 

@@ -56,7 +56,11 @@
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-button type="primary" icon="el-icon-plus" @click="addAttrValue">添加属性值</el-button>
+                        <el-button 
+                            type="primary" 
+                            icon="el-icon-plus"
+                            :disabled="!attrForm.attrName" 
+                            @click="addAttrValue">添加属性值</el-button>
                         <el-button @click="isShowTable = true">取消</el-button>
                     </el-col>
                 </el-row>
@@ -74,21 +78,22 @@
                                 prop="valueName"
                                 label="属性值名称"
                                 max-width="180">
-                                <template slot-scope="scope">
+                                <template slot-scope="{row, $index}">
                                     <el-form-item
                                         :rules="rules.valueName"
-                                        :prop="'attrValueList.' + scope.$index + '.valueName'"
+                                        :prop="'attrValueList.' + $index + '.valueName'"
                                         label-width="auto">
                                         <el-input
-                                            v-model="scope.row.valueName" 
-                                            v-if="scope.row.flag" 
-                                            :ref="scope.row"
+                                            v-model="row.valueName" 
+                                            v-if="row.flag" 
+                                            :ref="$index"
                                             size="mini"
-                                            @blur="toLook(scope.row)"></el-input>
+                                            @blur="toLook(row)"
+                                            @keyup.native.enter="toLook(row)"></el-input>
                                         <span 
                                             v-else
-                                            @click="toEdit(scope.row)"
-                                            style="display: block">{{scope.row.valueName}}</span>
+                                            @click="toEdit(row, $index)"
+                                            style="display: block">{{row.valueName}}</span>
                                     </el-form-item>
                                 </template>
                             </el-table-column>
@@ -188,8 +193,15 @@ export default {
             this.$set(item, 'flag', false)
         })
     },
-    toEdit(row) {
+    toEdit(row, index) {
         row.flag = true
+        //获取input节点，实现自动聚焦
+        //需要注意：点击span的时候，切换为input变为编辑模式，但是需要注意，对于浏览器而言，页面重绘与重排耗时间的
+        //点击span的时候，重绘重排一个input它是需要耗费时间，因此我们不可能一点击span立马获取到input
+        //$nextTick,当节点渲染完毕了，会执行一次
+        this.$nextTick(() => {
+            this.$refs[index].focus()
+        })
     },
     toLook(row) {
         if(row.valueName !== '') {
@@ -201,6 +213,10 @@ export default {
             valueName: '',
             flag: true,
             attrId: this.attrForm.id 
+        })
+
+        this.$nextTick(() => {
+            this.$refs[this.attrForm.attrValueList.length - 1].focus()
         })
     },
     addAttr() {

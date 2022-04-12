@@ -102,7 +102,7 @@ export default {
       let { category2Id } = this.form;
       this.$emit('getCategoryId', {categoryId: category2Id, level: 2});
 
-      let result = await this.$api.attr.reqCategory2List(category2Id);
+      let result = await this.$api.attr.reqCategory3List(category2Id);
       if (result.code == 200) {
         this.category3List = result.data;
       }
